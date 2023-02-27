@@ -4,7 +4,6 @@ import numpy as np
 
 from utils import plot_learning_curve
 
-
 ENV_NAME = "CartPole-v0"
 ENV_PARAMS = {}
 EPISODES = 500
@@ -17,27 +16,36 @@ BATCH_SIZE = 64
 MAX_MEMORY_SIZE = 100000
 RENDER_TRAINING = False
 RENDER_FPS = 60
+ONLINE_TO_TARGET_FREQUENCY = 1000
+SAVE_FREQUENCY = 10000
 # Edit network at dqn.py
-
 
 if __name__ == "__main__":
     if RENDER_TRAINING:
-        env = gym.make(ENV_NAME, **ENV_PARAMS)
+        env = gym.make(ENV_NAME, render_mode="human", **ENV_PARAMS)
         env.metadata["render_fps"] = RENDER_FPS
     else:
         env = gym.make(ENV_NAME, **ENV_PARAMS)
 
-    agent = Agent(
-        n_actions=env.action_space.n,
-        input_dims=env.observation_space.shape,
-        lr=LEARNING_RATE,
-        gamma=GAMMA,
-        epsilon=EPSILON_START,
-        eps_end=EPSILON_END,
-        eps_dec=EPSILON_DECAY,
-        batch_size=BATCH_SIZE,
-        max_mem_size=MAX_MEMORY_SIZE,
-    )
+    obs, info = env.reset()
+
+    try:
+        agent = Agent.load()
+        print(f"[INFO] Resuming previous trainment")
+    except:
+        agent = Agent(
+            n_actions=env.action_space.n,
+            input_dims=env.observation_space.shape,
+            lr=LEARNING_RATE,
+            gamma=GAMMA,
+            epsilon=EPSILON_START,
+            eps_end=EPSILON_END,
+            eps_dec=EPSILON_DECAY,
+            batch_size=BATCH_SIZE,
+            max_mem_size=MAX_MEMORY_SIZE,
+            online_to_target_frequency=ONLINE_TO_TARGET_FREQUENCY,
+            save_frequency=SAVE_FREQUENCY,
+        )
     scores, eps_history = [], []
 
     for i in range(EPISODES):
@@ -63,6 +71,7 @@ if __name__ == "__main__":
             f"Epsisode [{i}], Score [{score:.2f}], Avg Score [{avg_score:.2f}], Epsilon [{agent.epsilon:.3f}]",
         )
 
+    agent.save()
     plot_learning_curve(scores, eps_history)
 
     env = gym.make(ENV_NAME, render_mode="human", **ENV_PARAMS)
@@ -78,4 +87,4 @@ if __name__ == "__main__":
 
             observation = observation_
 
-        print("Test score", score)
+        print(f"Test score [{score}]")
